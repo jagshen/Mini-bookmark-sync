@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>推广图</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #f0f0f0; display: flex; justify-content: center; padding: 40px; }
+  #canvas { width: 440px; height: 280px; border-radius: 12px; overflow: hidden; position: relative; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .bg-pattern { position: absolute; inset: 0; opacity: 0.06; background-image: radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px); background-size: 24px 24px; }
+  .icon-area { position: absolute; top: 36px; left: 32px; width: 64px; height: 64px; background: rgba(255,255,255,0.1); border-radius: 16px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+  .icon-area svg { width: 36px; height: 36px; }
+  .title { position: absolute; top: 42px; left: 112px; color: #fff; font-size: 22px; font-weight: 700; font-family: -apple-system, 'Microsoft YaHei', sans-serif; letter-spacing: 0.5px; }
+  .subtitle { position: absolute; top: 72px; left: 112px; color: rgba(255,255,255,0.55); font-size: 13px; font-family: -apple-system, 'Microsoft YaHei', sans-serif; }
+  .features { position: absolute; bottom: 32px; left: 32px; right: 32px; display: flex; gap: 10px; }
+  .tag { flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 12px; text-align: center; }
+  .tag-icon { font-size: 18px; margin-bottom: 4px; }
+  .tag-text { color: rgba(255,255,255,0.8); font-size: 12px; font-family: -apple-system, 'Microsoft YaHei', sans-serif; }
+  .badge { position: absolute; top: 36px; right: 32px; background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.3); color: #93bbfc; font-size: 11px; padding: 4px 10px; border-radius: 20px; font-family: -apple-system, 'Microsoft YaHei', sans-serif; }
+  .divider { position: absolute; top: 110px; left: 32px; right: 32px; height: 1px; background: rgba(255,255,255,0.08); }
+</style>
+</head>
+<body>
+<div id="canvas">
+  <div class="bg-pattern"></div>
+  <div class="icon-area">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </svg>
+  </div>
+  <div class="title">极简书签同步</div>
+  <div class="subtitle">简单 · 安全 · 无广告</div>
+  <div class="badge">支持 Berry</div>
+  <div class="divider"></div>
+  <div class="features">
+    <div class="tag">
+      <div class="tag-icon">☁️</div>
+      <div class="tag-text">WebDAV 同步</div>
+    </div>
+    <div class="tag">
+      <div class="tag-icon">🔄</div>
+      <div class="tag-text">自动同步</div>
+    </div>
+    <div class="tag">
+      <div class="tag-icon">🔒</div>
+      <div class="tag-text">本地存储</div>
+    </div>
+    <div class="tag">
+      <div class="tag-icon">⚡</div>
+      <div class="tag-text">极简轻量</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -118,7 +118,7 @@ Mini-bookmark-sync/
   <img src="images/wechat.png" alt="微信赞赏码" width="200"/>
 </div>
 
-也可以通过 [Buy Me A Coffee](https://www.buymeacoffee.com/jagshen) 支持。
+也可以通过 [Buy Me A Coffee](https://jagshen.github.io/Mini-bookmark-sync/support.html) 支持。
 
 ## 📄 相关链接
 

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "极简书签同步",
   "version": "1.0.0",
-  "description": "简单好用的书签同步工具，体积小巧、干净无广告。",
+  "description": "简单好用的书签同步工具，小巧、干净无广告。",
   "permissions": [
     "bookmarks",
     "storage",

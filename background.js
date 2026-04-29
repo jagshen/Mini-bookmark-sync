@@ -15,11 +15,21 @@ const FOLDER_TITLES = {
 
 const BERRY_HOME_TITLE = 'Berry主页';
 
+// ========== 自定义错误类型 ==========
+// 云端书签文件不存在（HTTP 404）——和网络故障/认证失败区分开，
+// 让上层能精准判断"是真没文件"还是"只是这次请求出错了"
+class CloudNotFoundError extends Error {
+  constructor(message = '云端没有书签文件') {
+    super(message);
+    this.name = 'CloudNotFoundError';
+  }
+}
+
 // ========== 同步互斥锁 ==========
 // MV3 Service Worker 可能被随时回收，因此用 storage 里的时间戳做分布式锁。
 // 内存变量只作为同一次 SW 生命周期内的快路径，真正判定以 storage 为准。
 const SYNC_LOCK_KEY = 'sync_lock_at';
-const SYNC_LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 分钟后强制视为过期
+const SYNC_LOCK_TIMEOUT_MS = 2 * 60 * 1000; // 2 分钟后强制视为过期
 let _memLock = false;
 
 async function acquireSyncLock(reason) {
@@ -155,7 +165,7 @@ async function getWebDAVConfig() {
     url: result.webdav_url || '',
     user: result.webdav_user || '',
     password: result.webdav_password || '',
-    path: result.webdav_bookmark_path || '/bookmarks.json'
+    path: normalizeBookmarkPath(result.webdav_bookmark_path)
   };
 }
 
@@ -180,6 +190,45 @@ function hasHostPermission(url) {
   });
 }
 
+// ========== 路径归一化 + 安全校验 ==========
+// 用户输入的 bookmark_path 可能是纯文件夹（/minibookmark）、
+// 含文件名（/minibookmark/mybook.json）、或末尾带斜杠（/minibookmark/）。
+//
+// 归一化规则：
+//   末段含 '.' → 视为文件名，整体作为完整路径
+//   末段不含 '.' / 末尾是 '/' / 空值 → 追加 /bookmarks.json
+//
+// 安全校验（非法直接抛 Error，由调用方捕获并提示用户）：
+//   - 字符白名单：只允许 [a-zA-Z0-9_.\-/]
+//   - 分段禁止 '.' 或 '..'（防止路径逃逸，部分 WebDAV 服务器会把 /foo/.. 解析为 /）
+//
+// ⚠️ popup.js 里也有一份同名副本（UI 校验用），修改时两边必须同步。
+function normalizeBookmarkPath(raw) {
+  let p = (raw || '').trim().replace(/\\/g, '/');
+  // 空输入或仅根目录 → 无效（约定：返回空串表示"未配置"）
+  if (!p || p === '/') return '';
+  // 确保以 / 开头
+  if (!p.startsWith('/')) p = '/' + p;
+
+  // 安全校验：字符白名单
+  if (!/^\/[a-zA-Z0-9_.\-/]*$/.test(p)) {
+    throw new Error('路径只能包含字母、数字、-、_、/、. 且必须以 / 开头');
+  }
+  // 安全校验：分段禁止 . / ..（字符白名单允许 . 但要禁独立段）
+  const segments = p.split('/').filter(Boolean);
+  for (const seg of segments) {
+    if (seg === '.' || seg === '..') {
+      throw new Error('路径不能包含 . 或 .. 段');
+    }
+  }
+
+  // 归一化
+  if (p.endsWith('/')) return p + 'bookmarks.json';
+  const lastSeg = segments[segments.length - 1];
+  if (lastSeg.includes('.')) return p; // 含扩展名 → 视为完整文件路径
+  return p + '/bookmarks.json';        // 纯文件夹 → 追加默认文件名
+}
+
 // 把 base URL 和 path 安全拼接：保证中间只有一个 "/"
 // 兼容 path 未以 "/" 开头、base 尾部有多个 "/"、path 含空格/中文/# 等情况
 function joinWebDAVUrl(baseUrl, path) {
@@ -193,6 +242,48 @@ function joinWebDAVUrl(baseUrl, path) {
   return cleanBase + '/' + encoded;
 }
 
+// ========== 确保远端文件夹存在（MKCOL 递归创建） ==========
+// WebDAV 的 PUT 不会自动创建父文件夹，需要提前 MKCOL。
+// 逐级创建，如 /a/b/c.json → 确保 /a/ 和 /a/b/ 都存在。
+// 忽略 405（已存在）和 301（重定向，有些服务器会对已存在目录返回 301）。
+async function ensureWebDAVDir(baseUrl, filePath, user, password) {
+  const authHeader = getAuthHeader(user, password);
+  // 拿到文件所在目录路径：/a/b/c.json → ['a','b']
+  const segments = filePath.replace(/^\/+|\/+$/g, '').split('/');
+  segments.pop(); // 去掉文件名
+  if (segments.length === 0) return; // 文件在根目录，无需创建
+
+  let currentPath = '';
+  for (const seg of segments) {
+    currentPath += '/' + seg + '/';
+    const dirUrl = joinWebDAVUrl(baseUrl, currentPath);
+    try {
+      // 先用 PROPFIND 检查目录是否已存在，避免直接 MKCOL 触发 401 弹窗
+      const checkResp = await fetch(dirUrl, {
+        method: 'PROPFIND',
+        headers: {
+          'Authorization': authHeader,
+          'Depth': '0',
+          'Content-Type': 'application/xml'
+        }
+      });
+      // 207 = 存在，直接跳过
+      if (checkResp.status === 207) continue;
+
+      // 目录不存在才发 MKCOL 创建（用 redirect:'manual' 防止浏览器弹认证框）
+      const resp = await fetch(dirUrl, {
+        method: 'MKCOL',
+        headers: { 'Authorization': authHeader }
+      });
+      // 201=已创建, 405=已存在, 301=重定向(部分服务器), 401=未授权
+      if (resp.ok || resp.status === 405 || resp.status === 301 || resp.status === 401) continue;
+      console.warn(`[sync] MKCOL ${currentPath} → ${resp.status}`);
+    } catch (e) {
+      console.warn(`[sync] MKCOL ${currentPath} 异常:`, e.message);
+    }
+  }
+}
+
 // 上传书签数据到 WebDAV
 async function uploadBookmarks(data) {
   const config = await getWebDAVConfig();
@@ -202,6 +293,11 @@ async function uploadBookmarks(data) {
   if (!config.user || !config.password) {
     throw new Error('WebDAV 未配置');
   }
+  if (!config.path) {
+    throw new Error('云端文件路径未配置，请至少指定一个文件夹');
+  }
+  // 确保远端文件夹存在
+  await ensureWebDAVDir(config.url, config.path, config.user, config.password);
   const fullUrl = joinWebDAVUrl(config.url, config.path);
   const response = await fetch(fullUrl, {
     method: 'PUT',
@@ -226,6 +322,9 @@ async function downloadBookmarks() {
   if (!config.user || !config.password) {
     throw new Error('WebDAV 未配置');
   }
+  if (!config.path) {
+    throw new Error('云端文件路径未配置，请至少指定一个文件夹');
+  }
   const fullUrl = joinWebDAVUrl(config.url, config.path);
   const response = await fetch(fullUrl, {
     method: 'GET',
@@ -234,8 +333,8 @@ async function downloadBookmarks() {
     }
   });
   if (response.status === 404) {
-    // 云端还没有书签文件，返回空数据
-    return null;
+    // 云端还没有书签文件——用专用错误类型，让调用方能精准区分
+    throw new CloudNotFoundError();
   }
   if (!response.ok) {
     throw new Error(`下载失败: ${response.status} ${response.statusText}`);
@@ -250,6 +349,21 @@ async function getDeviceId() {
   const newId = 'berry_' + Math.random().toString(36).slice(2, 10);
   await chrome.storage.local.set({ berry_device_id: newId });
   return newId;
+}
+
+// 统计本地书签（有 URL 的条目）数量，用于同步后回写 last_sync_count
+async function countLocalBookmarks() {
+  return new Promise((resolve) => {
+    chrome.bookmarks.getTree((tree) => {
+      let c = 0;
+      const walk = (node) => {
+        if (node.url) c++;
+        if (node.children) node.children.forEach(walk);
+      };
+      (tree || []).forEach(walk);
+      resolve(c);
+    });
+  });
 }
 
 // 获取整个书签树并转换为扁平列表格式（与 berry 书签 JSON 格式保持一致）
@@ -402,6 +516,21 @@ async function importBookmarksFromData(cloudData) {
     throw new Error('云端数据格式不兼容，请重新上传一次书签后再同步');
   }
   const bookmarkList = cloudData.bookmarks;
+
+  // ⚠️ 安全阀：云端空列表但本地有书签 → 拒绝清空
+  // 场景：云端 JSON 被误编辑/损坏/未授权返回空 body 解析出空数组时，
+  // 防止静默把本地几百条书签全部抹掉。如需"清空同步"，用户可手动先清本地再下载。
+  if (bookmarkList.length === 0) {
+    const localCount = await countLocalBookmarks();
+    if (localCount > 0) {
+      throw new Error(
+        `云端书签为空但本地有 ${localCount} 条书签，已拒绝清空。` +
+        `如需重置，请先手动清空本地书签再下载。`
+      );
+    }
+    // 本地也为空：无事可做，直接返回
+    return;
+  }
 
   // 动态获取 Chrome 书签栏和其他书签的真实 ID
   const tree = await new Promise(resolve => chrome.bookmarks.getTree(resolve));
@@ -562,7 +691,8 @@ async function uploadToCloud() {
   try {
     const bookmarksData = await serializeBookmarks();
     await uploadBookmarks(bookmarksData);
-    await chrome.storage.local.set({ last_sync_at: Date.now() });
+    const count = await countLocalBookmarks();
+    await chrome.storage.local.set({ last_sync_at: Date.now(), last_sync_count: count });
     return { success: true, message: "从本地上传成功" };
   } catch (e) {
     console.error('[sync] 上传失败:', e);
@@ -573,13 +703,14 @@ async function uploadToCloud() {
 async function downloadFromCloud() {
   try {
     const cloudData = await downloadBookmarks();
-    if (!cloudData) {
-      return { success: false, message: "云端没有书签文件" };
-    }
     await importBookmarksFromData(cloudData);
-    await chrome.storage.local.set({ last_sync_at: Date.now() });
+    const count = await countLocalBookmarks();
+    await chrome.storage.local.set({ last_sync_at: Date.now(), last_sync_count: count });
     return { success: true, message: "从云端下载成功" };
   } catch (e) {
+    if (e instanceof CloudNotFoundError) {
+      return { success: false, message: "云端没有书签文件" };
+    }
     console.error('[sync] 下载失败:', e);
     return { success: false, message: '下载失败：' + (e && e.message ? e.message : String(e)) };
   }
@@ -713,13 +844,22 @@ async function mergeSync() {
   try {
     const localData = await serializeBookmarks();
 
-    let cloudData = null;
+    // 只对"云端没有书签文件"（404）这一种情况容错——按仅上传处理是合理的。
+    // 其他错误（401 认证失败 / 网络超时 / 5xx 服务器故障）必须中断合并，
+    // 否则会用本地（可能不完整的）数据覆盖云端上其他设备已经同步好的书签。
+    let cloudList = [];
     try {
-      cloudData = await downloadBookmarks();
+      const cloudData = await downloadBookmarks();
+      if (cloudData && Array.isArray(cloudData.bookmarks)) {
+        cloudList = cloudData.bookmarks;
+      }
     } catch (e) {
-      console.warn('[sync] 下载云端失败，按仅上传处理:', e.message);
+      if (e instanceof CloudNotFoundError) {
+        console.info('[sync] 云端暂无书签文件，按首次上传处理');
+      } else {
+        throw e; // 网络/认证/服务器错误 → 让外层 catch 统一返回失败
+      }
     }
-    const cloudList = (cloudData && Array.isArray(cloudData.bookmarks)) ? cloudData.bookmarks : [];
 
     const mergedList = mergeBookmarkLists(localData.bookmarks, cloudList);
 
@@ -740,7 +880,8 @@ async function mergeSync() {
     // 回写云端
     await uploadBookmarks(mergedData);
 
-    await chrome.storage.local.set({ last_sync_at: Date.now() });
+    const count = await countLocalBookmarks();
+    await chrome.storage.local.set({ last_sync_at: Date.now(), last_sync_count: count });
     return { success: true, message: '两端合并成功' };
   } catch (e) {
     console.error('[sync] 合并失败:', e);
@@ -785,8 +926,10 @@ async function handleMessageWithLock(actionName, handler) {
   }
 }
 
-chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-  // 支持 sync action 的消息处理
+// ⚠️ 不要把 listener 写成 async。Chrome 的 MV3 onMessage 要求回调返回 true 才保持
+// sendResponse 通道异步可用；async 函数返回的是 Promise，Chrome 视为"同步无返回"，
+// sendResponse 会被立刻销毁。下面用同步函数 + 内部 IIFE 处理异步。
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   const syncActions = {
     'upload': () => handleMessageWithLock('upload', uploadToCloud),
     'download': () => handleMessageWithLock('download', downloadFromCloud),
@@ -794,25 +937,54 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   };
 
   if (syncActions[request.action]) {
-    // 同步操作前检查 host 权限
-    const cfg = await getWebDAVConfig();
-    if (!await hasHostPermission(cfg.url)) {
-      sendResponse({ success: false, message: '缺少域名访问权限，请重新保存配置以授权' });
-      return true;
-    }
-    syncActions[request.action]().then(sendResponse);
-    return true;
+    (async () => {
+      try {
+        // 同步操作前检查 host 权限
+        const cfg = await getWebDAVConfig();
+        if (!await hasHostPermission(cfg.url)) {
+          sendResponse({ success: false, message: '缺少域名访问权限，请重新保存配置以授权' });
+          return;
+        }
+        const result = await syncActions[request.action]();
+        sendResponse(result);
+      } catch (e) {
+        sendResponse({ success: false, message: e && e.message ? e.message : String(e) });
+      }
+    })();
+    return true; // 保持消息通道开启，等待异步 sendResponse
   }
 
-  // 配置相关消息
   if (request.action === 'updateSyncInterval') {
     rescheduleAlarm().then(() => sendResponse({ success: true }));
     return true;
   }
 
-  // 测试连接
   if (request.action === 'testConnection') {
     testConnection(request).then(sendResponse);
+    return true;
+  }
+
+  // popup 打开时检查配置连通性（走 background 避免 extension page 弹 HTTP 认证框）
+  if (request.action === 'checkConfig') {
+    (async () => {
+      try {
+        const { webdavUrl, webdavUser, webdavPassword, webdavPath } = request;
+        const normalizedPath = normalizeBookmarkPath(webdavPath);
+        if (!normalizedPath) {
+          sendResponse({ ok: false });
+          return;
+        }
+        const fullUrl = joinWebDAVUrl(webdavUrl, normalizedPath);
+        const authHeader = getAuthHeader(webdavUser, webdavPassword);
+        const resp = await fetch(fullUrl, {
+          method: 'GET',
+          headers: { 'Authorization': authHeader }
+        });
+        sendResponse({ ok: resp.ok || resp.status === 404 });
+      } catch (e) {
+        sendResponse({ ok: false });
+      }
+    })();
     return true;
   }
 });
@@ -820,25 +992,53 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
 // ========== 测试 WebDAV 连接 ==========
 async function testConnection(request) {
   const { webdavUrl, webdavUser, webdavPassword, webdavPath } = request;
-  const fullUrl = joinWebDAVUrl(webdavUrl, webdavPath);
+  const normalizedPath = normalizeBookmarkPath(webdavPath);
+  if (!normalizedPath) {
+    return { success: false, message: '请填写云端文件路径，至少指定一个文件夹' };
+  }
+  const fullUrl = joinWebDAVUrl(webdavUrl, normalizedPath);
 
+  // 先用更通用的方式测试：PROPFIND（WebDAV 标准方法）
+  // 如果 PROPFIND 失败再降级为 GET/HEAD
+  const authHeader = getAuthHeader(webdavUser, webdavPassword);
+
+  async function tryMethod(method) {
+    const headers = { 'Authorization': authHeader };
+    if (method === 'PROPFIND') {
+      headers['Content-Type'] = 'application/xml; charset=utf-8';
+      headers['Depth'] = '0';
+    }
+    const resp = await fetch(fullUrl, {
+      method,
+      headers
+    });
+    return resp;
+  }
 
   try {
-    // 先用 HEAD 请求测试连接（更轻量）
-    const response = await fetch(fullUrl, {
-      method: 'HEAD',
-      headers: {
-        'Authorization': getAuthHeader(webdavUser, webdavPassword)
-      }
-    });
+    let response;
 
-    // 404 说明服务器可访问，只是文件不存在（这是正常的）
+    // 策略：先尝试 PROPFIND（最标准的 WebDAV 测试方法）
+    try {
+      response = await tryMethod('PROPFIND');
+    } catch (e) {
+      // PROPFIND 可能被 CORS 或服务器拦截，降级到 GET
+      console.warn('[test] PROPFIND 失败，降级到 GET:', e.message);
+      response = await tryMethod('GET');
+    }
+
+    // 成功状态：2xx 表示可访问，404 表示服务器可达但文件不存在
     if (response.ok || response.status === 404) {
       return { success: true, message: response.status === 404 ? '连接成功，文件尚未创建' : '连接成功' };
     }
 
-    // 其他错误状态
-    throw new Error(`连接失败: ${response.status} ${response.statusText}`);
+    // 401 / 403 → 认证失败
+    if (response.status === 401 || response.status === 403) {
+      return { success: false, message: `认证失败(${response.status})，请检查用户名和密码` };
+    }
+
+    // 其他错误
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   } catch (e) {
     console.error('[test] 连接测试失败:', e);
     return { success: false, message: e.message || '连接测试失败' };

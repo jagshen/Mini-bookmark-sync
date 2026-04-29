@@ -67,7 +67,7 @@
 | Teracloud | ⭐⭐ | 免费提供 WebDAV |
 | 其他 WebDAV | ⭐ | 支持 RFC 4918 标准即可 |
 
-> 💡 **坚果云用户**：需要在[第三方应用管理](https://www.jianguoyun.com/d/account/security)中创建应用密码，不能使用登录密码。
+> 💡 **坚果云用户**：需要在[第三方应用管理](https://www.jianguoyun.com/#/safety)中创建应用密码，不能使用登录密码。
 
 ## 📖 同步模式说明
 

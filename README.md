@@ -38,7 +38,7 @@
 
 ### 1. 安装扩展
 
-1. 下载 ZIP 并解压到本地
+1. [下载 ZIP](https://github.com/jagshen/Mini-bookmark-sync/archive/refs/heads/main.zip) 并解压到本地
 2. 打开 Chrome，访问 `chrome://extensions/`
 3. 开启右上角「开发者模式」
 4. 点击「加载已解压的扩展程序」，选择解压后的文件夹

@@ -51,7 +51,7 @@
 | 服务器地址 | WebDAV 服务地址 | `https://dav.jianguoyun.com/dav/` |
 | 用户名 | 网盘账号或应用专用密码用户名 | `your@email.com` |
 | 密码 | 应用专用密码（非登录密码） | `xxxxxxxxxxxx` |
-| 书签路径 | 云端书签存储路径 | `/书签同步/bookmarks.json` |
+| 书签路径 | 云端书签存储路径 | `/minibookmark/bookmarks.json` |
 
 ### 3. 开始同步
 

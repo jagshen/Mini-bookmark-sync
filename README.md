@@ -31,8 +31,8 @@
       <b>主页</b>
     </td>
     <td align="center">
-      <img src="images/screenshot-3.png" alt="新增书签" width="280"/><br/>
-      <b>新增书签</b>
+      <img src="images/screenshot-3.png" alt="新增页面" width="280"/><br/>
+      <b>新增页面</b>
     </td>
   </tr>
 </table>

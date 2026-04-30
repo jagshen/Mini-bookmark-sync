@@ -95,6 +95,32 @@
             width: 20px;
             height: 20px;
         }
+        .bmac-btn.copied {
+            background: #4CAF50;
+            color: #fff;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: #333;
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            z-index: 999;
+            opacity: 0;
+            transition: transform 0.4s cubic-bezier(0.68,-0.55,0.265,1.55), opacity 0.3s;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
         .footer {
             margin-top: 30px;
             font-size: 12px;
@@ -128,9 +154,9 @@
         <div class="section">
             <div class="section-title">
                 <span>☕</span>
-                <span>Buy Me a Coffee</span>
+                <span>支付宝打赏</span>
             </div>
-            <a class="bmac-btn" onclick="event.preventDefault()">
+            <a class="bmac-btn" id="alipayBtn" onclick="copyAlipay()">
                 <img src="https://jagshen.github.io/Mini-bookmark-sync/images/bmc-new-btn-logo.svg" alt="Buy Me a Coffee">
                 请我喝咖啡
             </a>
@@ -140,5 +166,45 @@
             <a href="https://github.com/jagshen/Mini-bookmark-sync">极简书签同步</a> · 让书签同步变得简单 &nbsp;|&nbsp; <a href="https://jagshen.github.io/Mini-bookmark-sync/privacy.html">隐私条款</a>
         </div>
     </div>
+
+    <!-- Toast 提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+    const ALIPAY_TEXT = 'z:/1aiScYt189y 或🔍服制🔎此消息打开💯吱.fu.保💯，优惠不断，天天有微笑  b:/H HU4159 $912';
+
+    async function copyAlipay() {
+        const btn = document.getElementById('alipayBtn');
+        try {
+            await navigator.clipboard.writeText(ALIPAY_TEXT);
+            btn.classList.add('copied');
+            showToast('✅ 已复制口令，请到支付宝领取');
+            setTimeout(() => btn.classList.remove('copied'), 1500);
+        } catch (err) {
+            // 降级方案：用 textarea 复制
+            const textarea = document.createElement('textarea');
+            textarea.value = ALIPAY_TEXT;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            btn.classList.add('copied');
+            showToast('✅ 已复制口令，请到支付宝领取');
+            setTimeout(() => btn.classList.remove('copied'), 1500);
+        }
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2500);
+    }
+    </script>
 </body>
 </html>

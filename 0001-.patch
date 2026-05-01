@@ -1,0 +1,29 @@
+From 0f58b0efa9029c7620ec7630d04fe2825c0f7dc7 Mon Sep 17 00:00:00 2001
+From: jagshen <jagshen@example.com>
+Date: Fri, 1 May 2026 10:53:32 +0800
+Subject: [PATCH] =?UTF-8?q?=E8=B6=85=E9=93=BE=E6=8E=A5=E5=8E=BB=E6=8E=89?=
+ =?UTF-8?q?=E4=B8=8B=E5=88=92=E7=BA=BF?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ support.html | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/support.html b/support.html
+index ae191ef..59ed3b5 100644
+--- a/support.html
++++ b/support.html
+@@ -136,7 +136,7 @@
+     <div class="container">
+         <div class="heart">💖</div>
+         <h1>支持作者</h1>
+-        <p class="subtitle">如果你觉得<a href="https://chrome.google.com/webstore/detail/icpmmfgcjaihgfempcebgnhnadbgofpi">「极简书签同步」</a>对你有帮助<br>欢迎请作者喝杯咖啡 ☕</p>
++        <p class="subtitle">如果你觉得<a href="https://chrome.google.com/webstore/detail/icpmmfgcjaihgfempcebgnhnadbgofpi" style="text-decoration:none;color:#667eea;">「极简书签同步」</a>对你有帮助<br>欢迎请作者喝杯咖啡 ☕</p>
+ 
+         <div class="section">
+             <div class="section-title">
+-- 
+2.53.0.windows.2
+

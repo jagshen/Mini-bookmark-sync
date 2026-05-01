@@ -81,9 +81,7 @@
 
 如果你觉得这个工具对你有帮助，欢迎请我喝杯咖啡 ☕
 
-<div align="center">
-  <a href="https://jagshen.github.io/Mini-bookmark-sync/support.html"><img src="https://jagshen.github.io/Mini-bookmark-sync/images/wechat.webp" alt="微信赞赏" width="200"/></a>
-</div>
+<a href="https://jagshen.github.io/Mini-bookmark-sync/support.html"><img src="https://jagshen.github.io/Mini-bookmark-sync/images/wechat.webp" alt="微信赞赏" width="200"/></a>
 
 也可以通过 [Buy Me A Coffee](https://jagshen.github.io/Mini-bookmark-sync/support.html) 支持。
 

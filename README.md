@@ -38,7 +38,7 @@
 
 ### 1. 安装扩展
 
-前往 [Chrome Web Store](https://chromewebstore.google.com/detail/icpmmfgcjaihgfempcebgnhnadbgofpi) 搜索「极简书签同步」点击安装。
+前往 [Chrome Web Store](https://www.crxsoso.com/webstore/detail/icpmmfgcjaihgfempcebgnhnadbgofpi) 搜索「极简书签同步」点击安装。
 
 ### 2. 配置 WebDAV
 

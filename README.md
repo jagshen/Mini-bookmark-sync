@@ -38,7 +38,7 @@
 
 ### 1. 安装扩展
 
-前往 [Chrome Web Store](https://chromewebstore.google.com/detail/your-extension-id) 搜索「极简书签同步」点击安装。
+前往 [Chrome Web Store](https://chromewebstore.google.com/detail/icpmmfgcjaihgfempcebgnhnadbgofpi) 搜索「极简书签同步」点击安装。
 
 ### 2. 配置 WebDAV
 
@@ -82,7 +82,7 @@
 如果你觉得这个工具对你有帮助，欢迎请我喝杯咖啡 ☕
 
 <div align="center">
-  <a href="https://jagshen.github.io/Mini-bookmark-sync/support.html"><img src="images/wechat.png" alt="微信赞赏" width="200"/></a>
+  <a href="https://jagshen.github.io/Mini-bookmark-sync/support.html"><img src="https://jagshen.github.io/Mini-bookmark-sync/images/wechat.webp" alt="微信赞赏" width="200"/></a>
 </div>
 
 也可以通过 [Buy Me A Coffee](https://jagshen.github.io/Mini-bookmark-sync/support.html) 支持。

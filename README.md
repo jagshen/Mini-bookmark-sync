@@ -20,16 +20,13 @@
 <table>
   <tr>
     <td align="center">
-      <img src="images/screenshot-1.png" alt="配置页面" width="280"/><br/>
-      <b>配置页面</b>
+      <img src="images/screenshot-1.png" alt="配置页面" width="280"/>
     </td>
     <td align="center">
-      <img src="images/screenshot-2.png" alt="主页" width="280"/><br/>
-      <b>主页</b>
+      <img src="images/screenshot-2.png" alt="主页" width="280"/>
     </td>
     <td align="center">
-      <img src="images/screenshot-3.png" alt="新增页面" width="280"/><br/>
-      <b>新增页面</b>
+      <img src="images/screenshot-3.png" alt="新增页面" width="280"/>
     </td>
   </tr>
 </table>

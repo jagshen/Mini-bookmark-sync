@@ -151,7 +151,7 @@
         <div class="header">
             <h1>隐私政策</h1>
             <p class="subtitle">Privacy Policy</p>
-            <span class="ext-name"><a href="https://chrome.google.com/webstore/detail/icpmmfgcjaihgfempcebgnhnadbgofpi" style="color:#fff;text-decoration:none;">极简书签同步（Chrome 扩展）</a></span>
+            <span class="ext-name"><a href="https://chrome.google.com/webstore/detail/icpmmfgcjaihgfempcebgnhnadbgofpi" style="color:#fff;text-decoration:none;">极简书签同步（Chromium核心扩展）</a></span>
         </div>
 
         <div class="body">
@@ -189,7 +189,7 @@
                     <tr>
                         <td>WebDAV 配置（地址、用户名、密码）</td>
                         <td><span class="tag tag-local">仅本地存储</span></td>
-                        <td>以明文形式存储在 chrome.storage.local（浏览器扩展沙箱隔离），永远不会上传至除您指定 WebDAV 服务之外的任何地方。详见第六节关于密码存储的说明。</td>
+                        <td>以明文形式存储在浏览器扩展沙箱隔离，永远不会上传至除您指定 WebDAV 服务之外的任何地方。详见第六节关于密码存储的说明。</td>
                     </tr>
                     <tr>
                         <td>设备标识符</td>
@@ -215,10 +215,10 @@
             </table>
 
             <!-- 权限用途说明 -->
-            <h2>四、Chrome 权限使用说明</h2>
-            <p>本扩展申请了以下 Chrome 权限，每项权限的具体用途如下：</p>
+            <h2>四、Chromium权限使用说明</h2>
+            <p>本扩展申请了以下Chromium权限，每项权限的具体用途如下：</p>
             <ul>
-                <li><strong>bookmarks（书签）</strong> — 读写 Chrome 书签栏和其他书签文件夹中的书签数据，这是本扩展的核心功能。</li>
+                <li><strong>bookmarks（书签）</strong> — 读写Chromium核心书签栏和其他书签文件夹中的书签数据，这是本扩展的核心功能。</li>
                 <li><strong>storage（存储）</strong> — 使用 chrome.storage.local 在浏览器本地保存 WebDAV 连接配置（地址、用户名、密码）、同步设置及上次同步时间。所有数据均存储在本地浏览器中，不会上传至第三方。</li>
                 <li><strong>alarms（定时器）</strong> — 用于实现用户配置的自动定时同步功能（如每隔 N 分钟自动执行一次书签同步）。</li>
                 <li><strong>host_permissions（网站访问权限）</strong> — 仅在用户填写并保存 WebDAV 地址后，动态请求对<strong>该特定域名</strong>的访问权限，用于通过 HTTP/HTTPS 协议与用户自有的 WebDAV 服务器通信。<strong>不会预申请任何网站的访问权限。</strong></li>
